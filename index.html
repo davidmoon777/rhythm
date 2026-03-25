@@ -112,13 +112,11 @@ color:transparent;
 </head>
 <body>
 
-<!-- 메뉴 화면 -->
 <div id="menu">
 <h1>문유리듬</h1>
 <button id="startBtn">게임 시작</button>
 </div>
 
-<!-- 난이도 선택 -->
 <div id="difficulty" style="display:none">
 <h2>난이도 선택</h2>
 <button class="diffBtn" data-speed="3">이지</button>
@@ -126,7 +124,6 @@ color:transparent;
 <button class="diffBtn" data-speed="7">하드</button>
 </div>
 
-<!-- 게임 화면 -->
 <div id="game" style="display:none">
 <div id="ui">
 <div id="score">Score: 0</div>
@@ -175,13 +172,11 @@ let speed = 5
 let spawnInterval = 800
 let lastSpawn = 0
 
-// 메뉴 → 난이도 선택
 startBtn.onclick = () => {
     menu.style.display = "none"
     difficulty.style.display = "flex"
 }
 
-// 난이도 선택 → 게임 시작
 diffBtns.forEach(btn => {
     btn.onclick = () => {
         speed = parseInt(btn.dataset.speed)
@@ -193,13 +188,11 @@ diffBtns.forEach(btn => {
     }
 })
 
-// 노트 생성
 function spawnNote(lane, type = "normal") {
     const note = document.createElement("div")
     note.classList.add(type === "long" ? "long-note" : "note")
     note.style.top = "0px"
 
-    // 롱노트 길이
     let longHeight = 0
     if (type === "long") {
         longHeight = 80 + Math.random() * 120
@@ -221,8 +214,7 @@ function spawnNote(lane, type = "normal") {
     })
     note.addEventListener("touchend", e => {
         e.stopPropagation()
-        if (noteObj.type === "long" && noteObj.holding) {
-            hitNote(noteObj)
+        if (noteObj.type === "long") {
             noteObj.holding = false
         }
     })
@@ -230,19 +222,19 @@ function spawnNote(lane, type = "normal") {
     notes.push(noteObj)
 }
 
-// 노트 판정
 function hitNote(noteObj) {
-    const hitline = noteObj.y + noteObj.height/2
+    const hitline = noteObj.y + noteObj.height / 2
     const diff = Math.abs(hitline - (window.innerHeight - 140))
     if (diff < 20) judge("Perfect")
     else if (diff < 40) judge("Great")
     else if (diff < 70) judge("Good")
     else { judge("Miss"); return }
+
     noteObj.note.remove()
-    notes = notes.filter(n => n !== noteObj)
+    // 삭제는 update()에서 한 번에 처리
+    noteObj._toRemove = true
 }
 
-// 판정
 function judge(type) {
     total++
     if (type === "Perfect") { score += 300; combo++; hit++; showJudge("Perfect", true) }
@@ -252,19 +244,23 @@ function judge(type) {
     updateUI()
 }
 
-// UI 갱신
+function showJudge(text, rainbow = false) {
+    judgeText.className = ""
+    if (rainbow) judgeText.classList.add("rainbow")
+    judgeText.innerText = text
+    setTimeout(() => { judgeText.innerText = "" }, 400)
+}
+
 function updateUI() {
     scoreText.innerText = "Score: " + score
     comboText.innerText = "Combo: " + combo
     accuracyText.innerText = "Accuracy: " + (total === 0 ? 100 : Math.floor(hit / total * 100)) + "%"
 }
 
-// 게임 루프
 function update() {
     if (gameEnded) return
     const now = Date.now() - startTime
 
-    // 무한 노트 생성
     if (now - lastSpawn > spawnInterval) {
         const lane = Math.floor(Math.random() * lanes.length)
         const type = Math.random() < 0.2 ? "long" : "normal"
@@ -272,27 +268,26 @@ function update() {
         lastSpawn = now
     }
 
-    // 노트 이동
-    notes.forEach((n, i) => {
+    let toRemove = []
+    notes.forEach(n => {
         n.y += speed
         n.note.style.top = n.y + "px"
 
-        // 롱노트 유지 안하면 Miss
-        if (n.type === "long" && n.holding === false && n.y > window.innerHeight - 140 + n.height) {
-            n.note.remove()
-            notes.splice(i, 1)
+        if (n.type === "long" && !n.holding && n.y > window.innerHeight - 140 + n.height) {
+            toRemove.push(n)
             judge("Miss")
         }
-
-        // 일반 노트 화면 아래 지나가면 Miss
         if (n.type === "normal" && n.y > window.innerHeight - 120) {
-            n.note.remove()
-            notes.splice(i, 1)
+            toRemove.push(n)
             judge("Miss")
         }
     })
 
-    // 하드 모드 속도 증가
+    toRemove.forEach(n => {
+        n.note.remove()
+        notes = notes.filter(x => x !== n)
+    })
+
     if (speed > 5) speed += 0.01
 
     requestAnimationFrame(update)
