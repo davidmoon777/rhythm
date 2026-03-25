@@ -1,10 +1,8 @@
 const startBtn=document.getElementById("startBtn")
-const game=document.getElementById("game")
 const menu=document.getElementById("menu")
-const result=document.getElementById("result")
-
-const retryBtn=document.getElementById("retryBtn")
-const menuBtn=document.getElementById("menuBtn")
+const difficulty=document.getElementById("difficulty")
+const diffBtns=document.querySelectorAll(".diffBtn")
+const game=document.getElementById("game")
 
 const lanes=document.querySelectorAll(".lane")
 const buttons=document.querySelectorAll(".touch")
@@ -15,56 +13,49 @@ const accuracyText=document.getElementById("accuracy")
 const judgeText=document.getElementById("judgement")
 
 let notes=[]
-let combo=0
-let score=0
-let hit=0
-let total=0
-let startTime=0
-let chartIndex=0
-let gameEnded=false
+let combo=0, score=0, hit=0, total=0, startTime=0, chartIndex=0
+let gameEnded=false, speed=5
 
+// 메뉴 → 난이도 선택
 startBtn.onclick=()=>{
 menu.style.display="none"
+difficulty.style.display="flex"
+}
+
+// 난이도 선택 → 게임 시작
+diffBtns.forEach(btn=>{
+btn.onclick=()=>{
+speed=parseInt(btn.dataset.speed)
+difficulty.style.display="none"
 game.style.display="block"
-playMusic()
-startGame()
-}
-
-retryBtn.onclick=()=>location.reload()
-menuBtn.onclick=()=>{
-game.style.display="none"
-result.style.display="none"
-menu.style.display="flex"
-stopMusic()
-}
-
-function startGame(){
 startTime=Date.now()
 requestAnimationFrame(update)
 }
+})
 
-function spawnNote(lane,type,duration=0){
+// 노트 생성
+function spawnNote(lane){
 let note=document.createElement("div")
-note.classList.add(type==="long"?"long-note":"note")
+note.classList.add("note")
 note.style.top="0px"
 lanes[lane].appendChild(note)
-
-notes.push({lane,note, y:0, type,duration,startY:0})
+notes.push({lane,note,y:0})
 }
 
+// 게임 루프
 function update(){
-if(gameEnded)return
+if(gameEnded) return
 
 let now=Date.now()-startTime
 
 while(chartIndex<chart.length && now>chart[chartIndex].time){
-let c=chart[chartIndex]
-spawnNote(c.lane,c.type,c.duration)
+spawnNote(chart[chartIndex].lane)
 chartIndex++
 }
 
+// 노트 이동
 notes.forEach((n,i)=>{
-n.y+=4
+n.y+=speed
 n.note.style.top=n.y+"px"
 if(n.y>window.innerHeight-120){
 n.note.remove()
@@ -73,13 +64,13 @@ judge("Miss")
 }
 })
 
-if(chartIndex>=chart.length && notes.length===0 && !gameEnded){
-endGame()
-}
+// 하드 모드 점점 빨라짐
+if(speed>5 && chartIndex>10) speed+=0.02
 
 requestAnimationFrame(update)
 }
 
+// 판정
 function judge(type){
 total++
 if(type==="Perfect"){score+=300;combo++;hit++;showJudge("Perfect",true)}
@@ -102,6 +93,7 @@ comboText.innerText="Combo: "+combo
 accuracyText.innerText="Accuracy: "+(total===0?100:Math.floor(hit/total*100))+"%"
 }
 
+// 노트 히트
 function hitNote(lane){
 let hitline=window.innerHeight-140
 for(let i=0;i<notes.length;i++){
@@ -115,16 +107,7 @@ if(diff<70){n.note.remove();notes.splice(i,1);judge("Good");return}
 judge("Miss")
 }
 
+// 모바일 터치
 buttons.forEach(btn=>{
 btn.addEventListener("touchstart",()=>hitNote(parseInt(btn.dataset.key)))
 })
-
-function endGame(){
-gameEnded=true
-game.style.display="none"
-result.style.display="flex"
-document.getElementById("finalScore").innerText="Score: "+score
-document.getElementById("finalCombo").innerText="Max Combo: "+combo
-document.getElementById("finalAccuracy").innerText="Accuracy: "+(total===0?100:Math.floor(hit/total*100))+"%"
-stopMusic()
-}
