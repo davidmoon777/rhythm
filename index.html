@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proseka Mobile Rhythm Game</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 메뉴 화면 -->
+<div id="menu">
+<h1>Proseka Mobile</h1>
+<button id="startBtn">게임 시작</button>
+<button id="settingsBtn">설정</button>
+</div>
+
+<!-- 게임 화면 -->
+<div id="game" style="display:none">
+<div id="ui">
+<div id="score">Score: 0</div>
+<div id="combo">Combo: 0</div>
+<div id="accuracy">Accuracy: 100%</div>
+</div>
+
+<div id="judgement"></div>
+
+<div id="lanes">
+<div class="lane" data-key="0"></div>
+<div class="lane" data-key="1"></div>
+<div class="lane" data-key="2"></div>
+<div class="lane" data-key="3"></div>
+</div>
+
+<div id="hitline"></div>
+
+<div id="touch-area">
+<button class="touch" data-key="0"></button>
+<button class="touch" data-key="1"></button>
+<button class="touch" data-key="2"></button>
+<button class="touch" data-key="3"></button>
+</div>
+</div>
+
+<!-- 결과 화면 -->
+<div id="result" style="display:none">
+<h2>게임 결과</h2>
+<div id="finalScore"></div>
+<div id="finalCombo"></div>
+<div id="finalAccuracy"></div>
+<button id="retryBtn">다시하기</button>
+<button id="menuBtn">메뉴로</button>
+</div>
+
+<script src="chart.js"></script>
+<script src="audio.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
