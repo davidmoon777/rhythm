@@ -3,16 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Proseka Mobile Rhythm Game</title>
+<title>문유리듬</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- 메뉴 화면 -->
 <div id="menu">
-<h1>Proseka Mobile</h1>
+<h1>문유리듬</h1>
 <button id="startBtn">게임 시작</button>
-<button id="settingsBtn">설정</button>
+</div>
+
+<!-- 난이도 선택 -->
+<div id="difficulty" style="display:none">
+<h2>난이도 선택</h2>
+<button class="diffBtn" data-speed="3">이지</button>
+<button class="diffBtn" data-speed="5">노말</button>
+<button class="diffBtn" data-speed="7">하드</button>
 </div>
 
 <!-- 게임 화면 -->
@@ -42,18 +49,7 @@
 </div>
 </div>
 
-<!-- 결과 화면 -->
-<div id="result" style="display:none">
-<h2>게임 결과</h2>
-<div id="finalScore"></div>
-<div id="finalCombo"></div>
-<div id="finalAccuracy"></div>
-<button id="retryBtn">다시하기</button>
-<button id="menuBtn">메뉴로</button>
-</div>
-
 <script src="chart.js"></script>
-<script src="audio.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
