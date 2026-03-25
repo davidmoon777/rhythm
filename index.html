@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문유리듬</title>
+<style>
+body{
+margin:0;
+background:black;
+color:white;
+font-family:sans-serif;
+overflow:hidden;
+}
+
+#menu,#difficulty{
+position:absolute;
+width:100%;
+height:100%;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+}
+
+#menu button,#difficulty button{
+font-size:30px;
+padding:15px 40px;
+margin:10px 0;
+}
+
+#game{
+position:relative;
+width:100vw;
+height:100vh;
+}
+
+#lanes{
+display:flex;
+height:100%;
+}
+
+.lane{
+flex:1;
+border-left:1px solid #333;
+border-right:1px solid #333;
+position:relative;
+overflow:hidden;
+}
+
+.note{
+width:80%;
+height:20px;
+background:cyan;
+position:absolute;
+left:10%;
+border-radius:5px;
+}
+
+.long-note{
+width:80%;
+background:magenta;
+position:absolute;
+left:10%;
+border-radius:5px;
+}
+
+#hitline{
+position:absolute;
+bottom:120px;
+width:100%;
+height:5px;
+background:white;
+}
+
+#touch-area{
+position:absolute;
+bottom:0;
+width:100%;
+display:flex;
+}
+
+.touch{
+flex:1;
+height:120px;
+background:#111;
+border:1px solid #444;
+}
+
+#ui{
+position:absolute;
+top:10px;
+left:10px;
+font-size:20px;
+}
+
+#judgement{
+position:absolute;
+top:40%;
+width:100%;
+text-align:center;
+font-size:40px;
+font-weight:bold;
+}
+
+.rainbow{
+background:linear-gradient(90deg,red,orange,yellow,green,blue,indigo,violet);
+-webkit-background-clip:text;
+color:transparent;
+}
+</style>
+</head>
+<body>
+
+<!-- 메뉴 화면 -->
+<div id="menu">
+<h1>문유리듬</h1>
+<button id="startBtn">게임 시작</button>
+</div>
+
+<!-- 난이도 선택 -->
+<div id="difficulty" style="display:none">
+<h2>난이도 선택</h2>
+<button class="diffBtn" data-speed="3">이지</button>
+<button class="diffBtn" data-speed="5">노말</button>
+<button class="diffBtn" data-speed="7">하드</button>
+</div>
+
+<!-- 게임 화면 -->
+<div id="game" style="display:none">
+<div id="ui">
+<div id="score">Score: 0</div>
+<div id="combo">Combo: 0</div>
+<div id="accuracy">Accuracy: 100%</div>
+</div>
+
+<div id="judgement"></div>
+
+<div id="lanes">
+<div class="lane" data-key="0"></div>
+<div class="lane" data-key="1"></div>
+<div class="lane" data-key="2"></div>
+<div class="lane" data-key="3"></div>
+</div>
+
+<div id="hitline"></div>
+
+<div id="touch-area">
+<button class="touch" data-key="0"></button>
+<button class="touch" data-key="1"></button>
+<button class="touch" data-key="2"></button>
+<button class="touch" data-key="3"></button>
+</div>
+</div>
+
+<script>
+// =================== 게임 로직 ===================
+const startBtn = document.getElementById("startBtn")
+const menu = document.getElementById("menu")
+const difficulty = document.getElementById("difficulty")
+const diffBtns = document.querySelectorAll(".diffBtn")
+const game = document.getElementById("game")
+
+const lanes = document.querySelectorAll(".lane")
+const scoreText = document.getElementById("score")
+const comboText = document.getElementById("combo")
+const accuracyText = document.getElementById("accuracy")
+const judgeText = document.getElementById("judgement")
+
+let notes = []
+let combo = 0, score = 0, hit = 0, total = 0
+let startTime = 0
+let gameEnded = false
+let speed = 5
+let spawnInterval = 800
+let lastSpawn = 0
+
+// 메뉴 → 난이도 선택
+startBtn.onclick = () => {
+    menu.style.display = "none"
+    difficulty.style.display = "flex"
+}
+
+// 난이도 선택 → 게임 시작
+diffBtns.forEach(btn => {
+    btn.onclick = () => {
+        speed = parseInt(btn.dataset.speed)
+        difficulty.style.display = "none"
+        game.style.display = "block"
+        startTime = Date.now()
+        lastSpawn = 0
+        requestAnimationFrame(update)
+    }
+})
+
+// 노트 생성
+function spawnNote(lane, type = "normal") {
+    const note = document.createElement("div")
+    note.classList.add(type === "long" ? "long-note" : "note")
+    note.style.top = "0px"
+
+    // 롱노트 길이
+    let longHeight = 0
+    if (type === "long") {
+        longHeight = 80 + Math.random() * 120
+        note.style.height = longHeight + "px"
+    }
+
+    lanes[lane].appendChild(note)
+
+    let noteObj = { lane, note, y: 0, type, height: longHeight, holding: false }
+
+    // 직접 터치 판정
+    note.addEventListener("touchstart", e => {
+        e.stopPropagation()
+        if (noteObj.type === "normal") {
+            hitNote(noteObj)
+        } else {
+            noteObj.holding = true
+        }
+    })
+    note.addEventListener("touchend", e => {
+        e.stopPropagation()
+        if (noteObj.type === "long" && noteObj.holding) {
+            hitNote(noteObj)
+            noteObj.holding = false
+        }
+    })
+
+    notes.push(noteObj)
+}
+
+// 노트 판정
+function hitNote(noteObj) {
+    const hitline = noteObj.y + noteObj.height/2
+    const diff = Math.abs(hitline - (window.innerHeight - 140))
+    if (diff < 20) judge("Perfect")
+    else if (diff < 40) judge("Great")
+    else if (diff < 70) judge("Good")
+    else { judge("Miss"); return }
+    noteObj.note.remove()
+    notes = notes.filter(n => n !== noteObj)
+}
+
+// 판정
+function judge(type) {
+    total++
+    if (type === "Perfect") { score += 300; combo++; hit++; showJudge("Perfect", true) }
+    else if (type === "Great") { score += 200; combo++; hit++; showJudge("Great") }
+    else if (type === "Good") { score += 100; combo++; hit++; showJudge("Good") }
+    else { combo = 0; showJudge("Miss") }
+    updateUI()
+}
+
+// UI 갱신
+function updateUI() {
+    scoreText.innerText = "Score: " + score
+    comboText.innerText = "Combo: " + combo
+    accuracyText.innerText = "Accuracy: " + (total === 0 ? 100 : Math.floor(hit / total * 100)) + "%"
+}
+
+// 게임 루프
+function update() {
+    if (gameEnded) return
+    const now = Date.now() - startTime
+
+    // 무한 노트 생성
+    if (now - lastSpawn > spawnInterval) {
+        const lane = Math.floor(Math.random() * lanes.length)
+        const type = Math.random() < 0.2 ? "long" : "normal"
+        spawnNote(lane, type)
+        lastSpawn = now
+    }
+
+    // 노트 이동
+    notes.forEach((n, i) => {
+        n.y += speed
+        n.note.style.top = n.y + "px"
+
+        // 롱노트 유지 안하면 Miss
+        if (n.type === "long" && n.holding === false && n.y > window.innerHeight - 140 + n.height) {
+            n.note.remove()
+            notes.splice(i, 1)
+            judge("Miss")
+        }
+
+        // 일반 노트 화면 아래 지나가면 Miss
+        if (n.type === "normal" && n.y > window.innerHeight - 120) {
+            n.note.remove()
+            notes.splice(i, 1)
+            judge("Miss")
+        }
+    })
+
+    // 하드 모드 속도 증가
+    if (speed > 5) speed += 0.01
+
+    requestAnimationFrame(update)
+}
+</script>
+</body>
+</html>
