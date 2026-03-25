@@ -35,7 +35,7 @@ requestAnimationFrame(update)
 
 // 노트 생성
 function spawnNote(lane){
-let note=document.createElement("div")
+const note=document.createElement("div")
 note.classList.add("note")
 note.style.top="0px"
 lanes[lane].appendChild(note)
@@ -48,6 +48,7 @@ if(gameEnded) return
 
 let now=Date.now()-startTime
 
+// 차트 기반 노트 생성
 while(chartIndex<chart.length && now>chart[chartIndex].time){
 spawnNote(chart[chartIndex].lane)
 chartIndex++
@@ -57,14 +58,16 @@ chartIndex++
 notes.forEach((n,i)=>{
 n.y+=speed
 n.note.style.top=n.y+"px"
-if(n.y>window.innerHeight-120){
+
+const hitline=window.innerHeight-140
+if(n.y>hitline+50){
 n.note.remove()
 notes.splice(i,1)
 judge("Miss")
 }
 })
 
-// 하드 모드 점점 빨라짐
+// 하드 모드: 노트 점점 빨라짐
 if(speed>5 && chartIndex>10) speed+=0.02
 
 requestAnimationFrame(update)
@@ -95,7 +98,7 @@ accuracyText.innerText="Accuracy: "+(total===0?100:Math.floor(hit/total*100))+"%
 
 // 노트 히트
 function hitNote(lane){
-let hitline=window.innerHeight-140
+const hitline=window.innerHeight-140
 for(let i=0;i<notes.length;i++){
 let n=notes[i]
 if(n.lane===lane){
